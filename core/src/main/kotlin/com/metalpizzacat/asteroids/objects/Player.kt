@@ -6,14 +6,12 @@ import com.badlogic.gdx.Gdx.files
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
 import com.metalpizzacat.asteroids.moveTowards
-import ktx.freetype.generateFont
+import ktx.math.minus
 import ktx.math.plus
 import ktx.math.times
 import kotlin.math.cos
@@ -23,8 +21,8 @@ class Player(
     texture: Texture,
     position: Vector2,
     private val playableAreaSize: Vector2,
-    val onDeath : () -> Unit,
-    val onHealthChanged : (health : Int) -> Unit,
+    val onDeath: () -> Unit,
+    val onHealthChanged: (health: Int) -> Unit,
     private val speed: Float = 10f
 ) : GameObject(position) {
     private val hitSound: Sound = audio.newSound(files.internal("sounds/playerdead.wav"))
@@ -34,11 +32,11 @@ class Player(
      */
     private var velocity: Float = 0f
 
-    var health : Int = 3
-        private set(value){
+    var health: Int = 3
+        private set(value) {
             field = value
             onHealthChanged(value)
-            if(field <= 0){
+            if (field <= 0) {
                 onDeath()
             }
         }
@@ -51,17 +49,23 @@ class Player(
     private val sprite: Sprite by lazy { Sprite(texture, 16, 16, 32, 32) }
 
     /**
+     * Offset from the center of the sprite to the position
+     */
+    private val centerOffset: Vector2 = Vector2(16f, 16f)
+
+    /**
      * Rectangle used for intersection testing
      */
-    override val collisionRect: Rectangle = Rectangle(position.x, position.y, 32f, 32f)
+    override val collisionRect: Rectangle =
+        Rectangle(position.x - centerOffset.x, position.y - centerOffset.y, 32f, 32f)
 
 
     override var position: Vector2
         get() = super.position
         set(value) {
             super.position = value
-            sprite.setPosition(super.position.x - 16f, super.position.y - 16f)
-            collisionRect.setPosition(super.position)
+            sprite.setPosition(super.position.x - centerOffset.x, super.position.y - centerOffset.x)
+            collisionRect.setPosition(super.position - centerOffset)
         }
 
     /**

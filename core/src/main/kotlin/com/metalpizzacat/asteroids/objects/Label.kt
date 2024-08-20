@@ -8,26 +8,31 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
 
-class Label(text: String, fontSize: Int = 16, position: Vector2) : GameObject(position) {
+class Label(
+    text: String,
+    fontSize: Int = 16,
+    position: Vector2,
+    /**
+     * Font used to display this label
+     */
     private val font: BitmapFont = FreeTypeFontGenerator(Gdx.files.internal("fonts/Roboto-Regular.ttf")).generateFont(
         FreeTypeFontGenerator.FreeTypeFontParameter().apply {
             size = fontSize
         })
+) : GameObject(position) {
 
-    private val layout : GlyphLayout = GlyphLayout()
+    private val layout: GlyphLayout = GlyphLayout()
 
-    var text : String = text
-        set(value){
+    var text: String = text
+        set(value) {
             field = value
             layout.setText(font, value)
-            width = layout.width
-            height = layout.height
         }
 
-    var width : Float = 0f
-        private set
-    var height : Float = 0f
-        private set
+    val width: Float
+        get() = layout.width
+    val height: Float
+        get() = layout.height
 
     override fun draw(spriteBatch: SpriteBatch) {
         font.draw(spriteBatch, text, position.x, position.y)

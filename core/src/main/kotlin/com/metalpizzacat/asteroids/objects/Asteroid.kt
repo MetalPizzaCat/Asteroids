@@ -6,17 +6,17 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
 import ktx.math.plus
-import ktx.math.plusAssign
 import ktx.math.times
 
 class Asteroid(
     texture: Texture,
     position: Vector2,
     var direction: Vector2,
+    var gameplayArea: Rectangle,
     /**
      * How many hits are required to destroy this asteroid
      */
-    var health : Int = 1,
+    var health: Int = 1,
     val speed: Float = 15f,
     val rotationSpeed: Float = 1f,
     /**
@@ -65,5 +65,17 @@ class Asteroid(
     override fun update(delta: Float) {
         position = position + direction * speed * delta
         sprite.rotation += rotationSpeed
+        if (position.x > gameplayArea.x + gameplayArea.width) {
+            position.x = 0f
+        }
+        if (position.y > gameplayArea.y + gameplayArea.height) {
+            position.y = 0f
+        }
+        if (position.x < gameplayArea.x) {
+            position.x = gameplayArea.x + gameplayArea.width
+        }
+        if (position.y < gameplayArea.y) {
+            position.y = gameplayArea.y + gameplayArea.height
+        }
     }
 }
