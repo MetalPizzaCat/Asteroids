@@ -18,3 +18,9 @@ fun <T> List<T>.pickRandom(): T? = if (this.isEmpty()) {
 } else {
     this[Random.nextInt(0, this.size - 1)]
 }
+
+
+/**
+ * A simple helper function to get a random float value in a given range
+ */
+fun getRandomFloatInRange(min: Float, max: Float) = Random.nextDouble(min.toDouble(), max.toDouble()).toFloat()

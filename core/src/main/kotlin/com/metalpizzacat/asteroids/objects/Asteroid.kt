@@ -59,11 +59,13 @@ class Asteroid(
         }
 
     override fun draw(spriteBatch: SpriteBatch) {
-        sprite.draw(spriteBatch)
+        if (visible) {
+            sprite.draw(spriteBatch)
+        }
     }
 
     override fun update(delta: Float) {
-        position = position + direction * speed * delta
+        position += direction * speed * delta
         sprite.rotation += rotationSpeed
         if (position.x > gameplayArea.x + gameplayArea.width) {
             position.x = 0f

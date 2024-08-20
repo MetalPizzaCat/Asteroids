@@ -13,7 +13,8 @@ fun main() {
       return
     Lwjgl3Application(AsteroidGame(), Lwjgl3ApplicationConfiguration().apply {
         setTitle("Asteroids")
-        setWindowedMode(640, 480)
-        setWindowIcon(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))
+        setWindowedMode(800, 640)
+        setResizable(false)
+        setWindowIcon(*(arrayOf(128, 64, 32, 16).map { "logo$it.png" }.toTypedArray()))
     })
 }

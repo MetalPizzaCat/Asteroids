@@ -22,7 +22,6 @@ class Player(
     position: Vector2,
     private val playableAreaSize: Vector2,
     val onDeath: () -> Unit,
-    val onHealthChanged: (health: Int) -> Unit,
     private val speed: Float = 10f
 ) : GameObject(position) {
     private val hitSound: Sound = audio.newSound(files.internal("sounds/playerdead.wav"))
@@ -32,10 +31,11 @@ class Player(
      */
     private var velocity: Float = 0f
 
+    var paused: Boolean = false
+
     var health: Int = 3
-        private set(value) {
+        set(value) {
             field = value
-            onHealthChanged(value)
             if (field <= 0) {
                 onDeath()
             }
@@ -85,10 +85,15 @@ class Player(
 
 
     override fun draw(spriteBatch: SpriteBatch) {
-        sprite.draw(spriteBatch)
+        if (visible) {
+            sprite.draw(spriteBatch)
+        }
     }
 
     override fun update(delta: Float) {
+        if (paused) {
+            return
+        }
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             rotation += (speed / 3f)
         }
@@ -123,6 +128,9 @@ class Player(
     fun receiveDamage() {
         hitSound.play()
         health -= 1
+        if (health < 0) {
+            onDeath()
+        }
     }
 
 }

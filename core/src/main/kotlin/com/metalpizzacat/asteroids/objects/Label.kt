@@ -15,7 +15,7 @@ class Label(
     /**
      * Font used to display this label
      */
-    private val font: BitmapFont = FreeTypeFontGenerator(Gdx.files.internal("fonts/Roboto-Regular.ttf")).generateFont(
+    private val font: BitmapFont = FreeTypeFontGenerator(Gdx.files.internal("fonts/PixelifySans-VariableFont_wght.ttf")).generateFont(
         FreeTypeFontGenerator.FreeTypeFontParameter().apply {
             size = fontSize
         })
@@ -35,7 +35,9 @@ class Label(
         get() = layout.height
 
     override fun draw(spriteBatch: SpriteBatch) {
-        font.draw(spriteBatch, text, position.x, position.y)
+        if (visible) {
+            font.draw(spriteBatch, text, position.x, position.y)
+        }
     }
 
     override fun update(delta: Float) {

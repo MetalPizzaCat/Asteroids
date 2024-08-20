@@ -6,15 +6,13 @@ import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.math.Intersector
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
-import com.metalpizzacat.asteroids.objects.Asteroid
-import com.metalpizzacat.asteroids.objects.Bullet
-import com.metalpizzacat.asteroids.objects.Label
-import com.metalpizzacat.asteroids.objects.Player
+import com.metalpizzacat.asteroids.objects.*
 import com.metalpizzacat.asteroids.pickRandom
 import ktx.app.KtxInputAdapter
 import ktx.app.KtxScreen
@@ -34,6 +32,29 @@ class GameScreen : KtxScreen, KtxInputAdapter {
         play()
     }
 
+    /**
+     * Texture used by every object
+     */
+    private val texture: Texture by lazy { Texture("asteroids.png") }
+
+    /**
+     * Icons used to display player health
+     */
+    private val healthIcons: List<Sprite> =
+        listOf(
+            Sprite(texture, 16, 16, 32, 32),
+            Sprite(texture, 16, 16, 32, 32),
+            Sprite(texture, 16, 16, 32, 32)
+        )
+
+    /**
+     * Invincibility on respawn timer
+     */
+    private val invincibilityTimer = Timer(2f, true, autoStart = false) {
+        playerIsSpawning = false
+        player.visible = true
+    }
+
     private val explosionSounds: List<Sound> = listOf(
         audio.newSound(files.internal("sounds/explosion1.wav")),
         audio.newSound(files.internal("sounds/explosion2.wav")),
@@ -50,7 +71,7 @@ class GameScreen : KtxScreen, KtxInputAdapter {
             })
 
     private val spriteBatch: SpriteBatch by lazy { SpriteBatch() }
-    private val texture: Texture by lazy { Texture("asteroids.png") }
+
     private val player: Player by lazy {
         Player(
             texture,
@@ -61,18 +82,23 @@ class GameScreen : KtxScreen, KtxInputAdapter {
                 backgroundMusic.stop()
                 saveProgress()
             },
-            onHealthChanged = {}
         )
     }
+
 
     private val scoreLabel: Label = Label("Score 0", position = Vector2(0f, 30f), font = scoreFont)
     private val highScoreLabel: Label =
         Label("HighScore 0", position = Vector2(scoreLabel.width, 30f), font = scoreFont)
 
+
     /**
-     * How much time is left till next asteroid is spawned
+     * Whether player is in invincible spawning state or not
      */
-    private var asteroidSpawnTimer: Double = Random.nextDouble(0.5, 3.0)
+    private var playerIsSpawning: Boolean = false
+        set(value) {
+            field = value
+            player.paused = value
+        }
 
     private var score: Int = 0
         set(value) {
@@ -90,6 +116,11 @@ class GameScreen : KtxScreen, KtxInputAdapter {
         }
 
     private var isPlayerDead: Boolean = false
+        set(value) {
+            field = value
+            gameOverLabel.visible = value
+            gameOverHelperLabel.visible = value
+        }
 
     /**
      * Max speed with which asteroids can spawn
@@ -117,7 +148,14 @@ class GameScreen : KtxScreen, KtxInputAdapter {
      */
     private val bullets: ArrayList<Bullet> = ArrayList()
 
-    private val gameOverLabel: Label = Label("You lost!", 78, screenCenter - vec2(screenCenter.x / 2, 0f))
+    private val gameOverLabel: Label =
+        Label("You lost!", 78, screenCenter - vec2(screenCenter.x / 2, 0f)).apply { visible = false }
+    private val gameOverHelperLabel: Label =
+        Label(
+            "Press 's' to try again",
+            48,
+            screenCenter - vec2((screenCenter.x - screenCenter.x / 4f), 60f)
+        ).apply { visible = false }
 
 
     /**
@@ -134,6 +172,28 @@ class GameScreen : KtxScreen, KtxInputAdapter {
      * All bullets that should be deleted by the end of the frame
      */
     private val deadBullets: ArrayList<Bullet> = ArrayList()
+
+    private val gameObjects: List<GameObject> = listOf(
+        invincibilityTimer,
+        /**
+         * Invincibility blinking timer
+         */
+        Timer(0.1f, oneTime = false, autoStart = true) {
+            if (playerIsSpawning) {
+                player.visible = !player.visible
+            }
+        },
+        /**
+         * Timer used to spawn new asteroids
+         */
+        RandomTimer(0.5f, 3f, oneTime = false, autoStart = true) {
+            spawnNewAsteroid()
+        },
+        scoreLabel,
+        highScoreLabel,
+        gameOverLabel,
+        gameOverHelperLabel
+    )
 
     /**
      * Spawns a randomly sized asteroid in one of the edges of the screen
@@ -184,6 +244,10 @@ class GameScreen : KtxScreen, KtxInputAdapter {
         scoreLabel.position.y = scoreLabel.height + 5f
         highScoreLabel.position = vec2(scoreLabel.width + 10f, highScoreLabel.height + 5f)
         loadProgress()
+        for (i in 1..3) {
+            healthIcons[i - 1].x = graphics.width - i * 32f
+            healthIcons[i - 1].rotation = 90f
+        }
     }
 
     /**
@@ -191,13 +255,9 @@ class GameScreen : KtxScreen, KtxInputAdapter {
      * @param delta Time since last frame
      */
     private fun update(delta: Float) {
-        asteroidSpawnTimer -= delta
-        if (asteroidSpawnTimer < 0) {
-            asteroidSpawnTimer = Random.nextDouble(0.5, 3.0)
-            spawnNewAsteroid()
-        }
-        player.update(delta)
 
+        player.update(delta)
+        gameObjects.forEach { it.update(delta) }
         asteroids.addAll(newAsteroids.toSet())
         newAsteroids.clear()
         for (asteroid in asteroids) {
@@ -224,20 +284,20 @@ class GameScreen : KtxScreen, KtxInputAdapter {
         }
 
         clearScreen(0f, 0f, 0f)
-        spriteBatch.use { it ->
+        spriteBatch.use {
             player.draw(spriteBatch)
             asteroids.forEach { ast -> ast.draw(it) }
             bullets.forEach { bul -> bul.draw(it) }
-            if (isPlayerDead) {
-                gameOverLabel.draw(it)
-            }
-            scoreLabel.draw(it)
-            highScoreLabel.draw(it)
+            gameObjects.forEach { g -> g.draw(it) }
+            healthIcons.forEachIndexed { i, sprite -> if (i < player.health) sprite.draw(spriteBatch) }
         }
     }
 
     private fun damagePlayer() {
         player.receiveDamage()
+        playerIsSpawning = true
+        player.position = screenCenter.cpy()
+        invincibilityTimer.start()
     }
 
     /**
@@ -269,7 +329,7 @@ class GameScreen : KtxScreen, KtxInputAdapter {
      */
     private fun updateCollision() {
         for (asteroid in asteroids) {
-            if (Intersector.overlaps(asteroid.collisionRect, player.collisionRect)) {
+            if (Intersector.overlaps(asteroid.collisionRect, player.collisionRect) && !playerIsSpawning) {
                 damagePlayer()
                 return
             }
@@ -294,6 +354,7 @@ class GameScreen : KtxScreen, KtxInputAdapter {
         score = 0
         backgroundMusic.play()
         player.position = screenCenter.cpy()
+        player.health = 3
     }
 
     override fun keyDown(keycode: Int): Boolean {

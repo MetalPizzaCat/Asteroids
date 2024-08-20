@@ -13,4 +13,6 @@ abstract class GameObject(open var position: Vector2) {
 
     abstract val collisionRect : Rectangle
 
+    var visible : Boolean = true
+
 }
